@@ -1,15 +1,15 @@
 package com.marketplace.backend.users.dtos;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class UserDtoUpdate {
-    private Long id;
+public class CreateUserDTO {
+
     private String nombre;
-    private String apellido;
     private String username;
     private String email;
-    private String password;
+
 }

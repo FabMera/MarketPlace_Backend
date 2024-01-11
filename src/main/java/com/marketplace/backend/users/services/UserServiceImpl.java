@@ -1,78 +1,109 @@
 package com.marketplace.backend.users.services;
 
-import com.marketplace.backend.users.dtos.UserDto;
-import com.marketplace.backend.users.dtos.UserDtoUpdate;
-import com.marketplace.backend.users.model.entities.User;
+import com.marketplace.backend.users.auth.Roles;
+import com.marketplace.backend.users.dtos.CreateUserDTO;
+import com.marketplace.backend.users.dtos.UserDTO;
+import com.marketplace.backend.users.dtos.UserDTOUpdate;
+import com.marketplace.backend.users.exceptions.EmailAlReadyExceptions;
+import com.marketplace.backend.users.exceptions.UserNotFoundException;
+import com.marketplace.backend.users.mapper.CreateUserConverter;
+import com.marketplace.backend.users.mapper.UserConverter;
+import com.marketplace.backend.users.model.entities.UserMarketPlace;
 import com.marketplace.backend.users.repositories.UserRepository;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ModelMapper modelMapper;
+    private final UserRepository userRepository;
+    private final CreateUserConverter createUserConverter;
+    private final UserConverter userConverter;
+    private final PasswordEncoder passwordEncoder;
+
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserDto> findAllDto() {
-        List<User> users = (List<User>) userRepository.findAll();
-        return users.stream()
-                .map(user -> modelMapper.map(user, UserDto.class))
-                .collect(java.util.stream.Collectors.toList());
+    public List<CreateUserDTO> findAllUsers() {
+        List<UserMarketPlace> userMarketPlaces = userRepository.findAll();
+        return userMarketPlaces.stream().map(createUserConverter::convertToDto).toList();
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<User> findAllUser() {
-        return userRepository.findAll();
-    }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<UserDto> findUserById(Long id) {
-        Optional<User> userOptional = userRepository.findById(id);
+    public Optional<CreateUserDTO> findUserById(UUID id) {
+        Optional<UserMarketPlace> userOptional = userRepository.findById(id);
+
         if (userOptional.isPresent()) {
-            User user = userOptional.orElseThrow();
-            return Optional.ofNullable(modelMapper.map(user, UserDto.class));
+            UserMarketPlace userMarketPlace = userOptional.orElseThrow();
+            return Optional.ofNullable(createUserConverter.convertToDto(userMarketPlace));
         }
         throw new NoSuchElementException("No existe el usuario con id: " + id);
     }
 
     @Override
     @Transactional
-    public User saveUser(User user) {
-        return userRepository.save(user);
+    public CreateUserDTO saveUser(UserDTO userDTO) {
+        validateEmail(userDTO.getEmail());
+        String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
+        userDTO.setPassword(encodedPassword);
+        userDTO.setRole(Roles.USUARIO_PRINCIPAL);
+        UserMarketPlace userMarketPlace = userConverter.convertToEntity(userDTO);
+        userRepository.save(userMarketPlace);
+        return createUserConverter.convertToDto(userMarketPlace);
+
     }
 
     @Override
     @Transactional
-    public void removeUserById(Long id) {
+    public void removeUserById(UUID id) {
         userRepository.deleteById(id);
     }
 
     @Override
     @Transactional
-    public Optional<UserDtoUpdate> updateUser(Long id, UserDtoUpdate userDtoUpdate) {
-        Optional<User> userOptional = userRepository.findById(id);
-        User userOp = null;
-        if (userOptional.isPresent()) {
-            User userDB = userOptional.orElseThrow();
-            userDB.setEmail(userDtoUpdate.getEmail());
-            userDB.setNombre(userDtoUpdate.getNombre());
-            userDB.setApellido(userDtoUpdate.getApellido());
-            userDB.setPassword(userDtoUpdate.getPassword());
-            userOp = (userRepository.save(userDB));
-            return Optional.ofNullable(modelMapper.map(userOp, UserDtoUpdate.class));
+    public CreateUserDTO updateUser(UUID id, UserDTOUpdate userDtoUpdate) {
+        UserMarketPlace userMP = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+        updateUserFields(userMP, userDtoUpdate);
+        UserMarketPlace userUpdate = userRepository.save(userMP);
+        return createUserConverter.convertToDto(userUpdate);
+    }
+
+    private void updateUserFields(UserMarketPlace userMP, UserDTOUpdate userDtoUpdate) {
+        //Actualizamos solo los campos que no sean nulos.
+        if (userDtoUpdate.getNombre() != null) {
+            userMP.setNombre(userDtoUpdate.getNombre());
         }
-        return Optional.empty();
+        if (userDtoUpdate.getApellido() != null) {
+            userMP.setApellido(userDtoUpdate.getApellido());
+        }
+        if (userDtoUpdate.getUsername() != null) {
+            userMP.setUsername(userDtoUpdate.getUsername());
+        }
+        if (userDtoUpdate.getPassword() != null) {
+            userMP.setPassword(userDtoUpdate.getPassword());
+        }
+        if (userDtoUpdate.getImage() != null) {
+            userMP.setEmail(userDtoUpdate.getImage());
+        }
+    }
+
+    private void validateEmail(String email) {
+        Optional<UserMarketPlace> userMP = userRepository.findByEmail(email);
+        if (userMP.isPresent()) {
+            throw new EmailAlReadyExceptions("El email ya se encuentra registrado");
+        }
     }
 }

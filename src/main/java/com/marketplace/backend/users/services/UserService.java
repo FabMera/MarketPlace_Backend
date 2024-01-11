@@ -1,18 +1,18 @@
 package com.marketplace.backend.users.services;
 
-import com.marketplace.backend.users.dtos.UserDto;
-import com.marketplace.backend.users.dtos.UserDtoUpdate;
-import com.marketplace.backend.users.model.entities.User;
+import com.marketplace.backend.users.dtos.CreateUserDTO;
+import com.marketplace.backend.users.dtos.UserDTO;
+import com.marketplace.backend.users.dtos.UserDTOUpdate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface UserService {
 
-    List<UserDto> findAllDto();
-    List<User> findAllUser();
-    Optional<UserDto> findUserById(Long id);
-    User saveUser(User user);
-    void removeUserById(Long id);
-    Optional<UserDtoUpdate> updateUser(Long id, UserDtoUpdate userDtoUpdate);
+    List<CreateUserDTO> findAllUsers();
+    Optional<CreateUserDTO> findUserById(UUID id);
+    CreateUserDTO saveUser(UserDTO userDTO);
+    void removeUserById(UUID id);
+    CreateUserDTO updateUser(UUID id, UserDTOUpdate userDtoUpdate);
 }

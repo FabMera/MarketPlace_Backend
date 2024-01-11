@@ -3,13 +3,12 @@ package com.marketplace.backend.users.dtos;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
 @Setter
-public class UserDto {
-    private Long id;
-    private String nombre;
-    private String apellido;
+@Getter
+public class UserDTOAuth {
+
+    //Variables para guardar los datos del usuario en el token
     private String username;
     private String email;
-    private Boolean admin = false;
+    private String role;
 }

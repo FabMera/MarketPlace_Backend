@@ -1,11 +1,13 @@
 package com.marketplace.backend.users.repositories;
 
-import com.marketplace.backend.users.dtos.UserDto;
-import com.marketplace.backend.users.model.entities.User;
+import com.marketplace.backend.users.model.entities.UserMarketPlace;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+import java.util.Optional;
+import java.util.UUID;
 
-    //Buscar por username
-    User findByUsername(String username);
+public interface UserRepository extends JpaRepository<UserMarketPlace, UUID> {
+
+    //Buscar por EMAIL
+    Optional<UserMarketPlace> findByEmail(String email);
 }
